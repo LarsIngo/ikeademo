@@ -1,6 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import * as BABYLON from "@babylonjs/core";
+import { MorphPipeline, MorphTarget } from "./MorphPipeline";
 
 class App {
     private canvas: HTMLCanvasElement;
@@ -8,6 +9,9 @@ class App {
     private scene: BABYLON.Scene = null!;
 
     private objects: BABYLON.Mesh[] = [];
+
+    private morphPipeline: MorphPipeline = null!;
+    private morphTargets: Array<MorphTarget> = [];
 
     constructor() {
         // create the canvas html element and attach it to the webpage
@@ -45,9 +49,13 @@ class App {
         // populate the scene
         await this.populateSceneAsync();
 
+        // create morph pipeline to the scene
+        this.createMorphPipeline();
+
         // run the main render loop
         this.engine.runRenderLoop(() => {
             this.scene.render();
+            this.morphPipeline.update(this.morphTargets);
         });
     }
 
@@ -61,10 +69,10 @@ class App {
         camera.upperRadiusLimit = 8;
 
         // skybox
-        const envTex = BABYLON.CubeTexture.CreateFromPrefilteredData("./environment/brown_photostudio_02_4k.env", this.scene); // [source: https://polyhaven.com/a/brown_photostudio_02], converted from hdr to env using https://www.babylonjs.com/tools/ibl/
-        this.scene.environmentTexture = envTex;
+        const environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./environment/brown_photostudio_02_4k.env", this.scene); // [source: https://polyhaven.com/a/brown_photostudio_02], converted from hdr to env using https://www.babylonjs.com/tools/ibl/
+        this.scene.environmentTexture = environmentTexture;
         this.scene.environmentIntensity = 1;
-        const skybox = this.scene.createDefaultSkybox(envTex, true);
+        const skybox = this.scene.createDefaultSkybox(environmentTexture, true);
 
         // add objects to scene
         await this.addObjectsAsync();
@@ -134,6 +142,15 @@ class App {
             shadowGenerator1.addShadowCaster(object, true);
             shadowGenerator2.addShadowCaster(object, true);
             shadowGenerator3.addShadowCaster(object, true);
+        });
+    }
+    createMorphPipeline() {
+        this.morphPipeline = new MorphPipeline(this.engine);
+
+        // create morph target for each object
+        this.objects.forEach(object => {
+            const morphTarget = new MorphTarget(this.engine, object);
+            this.morphTargets.push(morphTarget);
         });
     }
 }
