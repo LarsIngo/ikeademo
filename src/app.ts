@@ -2,6 +2,7 @@ import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import * as BABYLON from "@babylonjs/core";
 import { MorphPipeline, MorphTarget } from "./MorphPipeline";
+import * as dat from "dat.gui";
 
 class App {
     private canvas: HTMLCanvasElement;
@@ -52,6 +53,13 @@ class App {
         // create morph pipeline to the scene
         this.createMorphPipeline();
 
+        // enable the morph targets to be picked and their values changed through a GUI
+        this.createMorphTargetPicker();
+
+        // update the morph targets "default" values.
+        this.morphTargets.find(morphTarget => morphTarget.mesh.name === "table")?.params.scale.set(1, 1.25, 1);
+        this.morphTargets.find(morphTarget => morphTarget.mesh.name === "chair")?.params.scale.set(3.5, 1, 1);
+
         // run the main render loop
         this.engine.runRenderLoop(() => {
             this.scene.render();
@@ -100,18 +108,21 @@ class App {
         // table
         const tableImportResult = await BABYLON.ImportMeshAsync("./models/side_table_tall_01_1k.glb", this.scene); //  [source: https://polyhaven.com/a/side_table_tall_01], convert to glb using blender.
         const table = tableImportResult.meshes[1] as BABYLON.Mesh;
+        table.name = "table";
         table.position = new BABYLON.Vector3(0, 0, 0);
         this.objects.push(table);
 
         // chair
         const chairImportResult = await BABYLON.ImportMeshAsync("./models/arm_chair_01_1k.glb", this.scene); //  [source: https://polyhaven.com/a/ArmChair_01], convert to glb using blender.
         const chair = chairImportResult.meshes[1] as BABYLON.Mesh;
+        chair.name = "chair";
         chair.position = new BABYLON.Vector3(0, 0, -1);
         this.objects.push(chair);
 
         // shelf
         const shelfImportResult = await BABYLON.ImportMeshAsync("./models/steel_frame_shelves_01_1k.glb", this.scene); //  [source: https://polyhaven.com/a/steel_frame_shelves_01], convert to glb using blender.
         const shelf = shelfImportResult.meshes[1] as BABYLON.Mesh;
+        shelf.name = "shelf";
         shelf.position = new BABYLON.Vector3(1, 0, 0);
         shelf.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
         this.objects.push(shelf);
@@ -129,7 +140,7 @@ class App {
         light2.position = new BABYLON.Vector3(0, 10, 0);
         light2.diffuse = new BABYLON.Color3(0, 1, 0);
         const shadowGenerator2 = new BABYLON.ShadowGenerator(1024, light2);
-
+        
         // blue light
         const light3 = new BABYLON.DirectionalLight("light3", new BABYLON.Vector3(1, -1, -1), this.scene);
         light3.position = new BABYLON.Vector3(0, 10, 0);
@@ -144,6 +155,7 @@ class App {
             shadowGenerator3.addShadowCaster(object, true);
         });
     }
+
     createMorphPipeline() {
         this.morphPipeline = new MorphPipeline(this.engine);
 
@@ -152,6 +164,38 @@ class App {
             const morphTarget = new MorphTarget(this.engine, object);
             this.morphTargets.push(morphTarget);
         });
+    }
+
+    createMorphTargetPicker() {
+        var picker = new BABYLON.GPUPicker();
+        picker.setPickingList(this.morphTargets.map(morphTarget => morphTarget.mesh));
+
+        var gui: BABYLON.Nullable<dat.GUI> = null;
+        this.scene.skipPointerDownPicking = true; // Disable default cpu picking.
+        this.scene.onPointerDown = (evt) => {
+            if (picker.pickingInProgress || evt.button !== 0) return;
+
+            picker.pickAsync(this.scene.pointerX, this.scene.pointerY).then((pickingInfo) => {
+                if (pickingInfo == null) return;
+
+                if (gui != null) {
+                    gui.destroy();
+                }
+
+                const morphTarget = this.morphTargets.find(morphTarget => morphTarget.mesh === pickingInfo.mesh);
+                if (morphTarget == null) return;
+
+                gui = new dat.GUI();
+                gui.domElement.id = "datGUI";
+
+                // add a lable for the current mesh
+                gui.add({ mesh: morphTarget.mesh.name }, "mesh").name("Current Mesh").listen();
+                gui.add(morphTarget.params.scale, "x", 1, 5).name('scale X');
+                gui.add(morphTarget.params.scale, "y", 1, 5).name('scale Y');
+                gui.add(morphTarget.params.scale, "z", 1, 5).name('scale Z');
+                gui.add(morphTarget.params, "animate").name('animate');
+            });
+        }
     }
 }
 

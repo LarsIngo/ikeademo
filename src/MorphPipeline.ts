@@ -90,7 +90,7 @@ export class MorphTarget {
 
     public params: MorphTargetParams = {
         animate: true,
-        scale: new BABYLON.Vector3(5, 1, 1),
+        scale: new BABYLON.Vector3(1, 1, 1),
     };
 
     public vertexCount: number;
