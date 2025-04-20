@@ -80,7 +80,7 @@ class App {
         const environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./environment/brown_photostudio_02_4k.env", this.scene); // [source: https://polyhaven.com/a/brown_photostudio_02], converted from hdr to env using https://www.babylonjs.com/tools/ibl/
         this.scene.environmentTexture = environmentTexture;
         this.scene.environmentIntensity = 1;
-        const skybox = this.scene.createDefaultSkybox(environmentTexture, true);
+        this.scene.createDefaultSkybox(environmentTexture, true);
 
         // add objects to scene
         await this.addObjectsAsync();
