@@ -49,4 +49,6 @@ The app will be available at [http://localhost:5173](http://localhost:5173) (or 
 
 ## 🛠️ Notes
 
-- Developed using **Node.js v22**, but versions after **v18** seem to work as well (untested).
+- Developed using **Node.js v22**, but versions after **v18** seem to work as well (untested)
+- Select objects by clicking them in the scene using the **left mouse button**. This displays a **GUI control** in the **top right corner** where morph properties can be changed
+- Manipulate the **post-processing effect** properties using the **top left GUI**
