@@ -8,6 +8,8 @@ class App {
     private canvas: HTMLCanvasElement;
     private engine: BABYLON.WebGPUEngine = null!;
     private scene: BABYLON.Scene = null!;
+    private camera: BABYLON.Camera = null!;
+    private postProcess: BABYLON.PostProcess = null!;
 
     private objects: BABYLON.Mesh[] = [];
 
@@ -60,6 +62,9 @@ class App {
         this.morphTargets.find(morphTarget => morphTarget.mesh.name === "table")?.params.scale.set(1, 1.25, 1);
         this.morphTargets.find(morphTarget => morphTarget.mesh.name === "chair")?.params.scale.set(3.5, 1, 1);
 
+        // add a post process effect to the scene
+        this.addPostProcessEffect();
+
         // run the main render loop
         this.engine.runRenderLoop(() => {
             this.scene.render();
@@ -69,7 +74,7 @@ class App {
 
     async populateSceneAsync() {
         // camera
-        var camera = new BABYLON.ArcRotateCamera("camera", Math.PI * 0.15, Math.PI * 0.35, 5, new BABYLON.Vector3(0, 1, 0), this.scene);
+        const camera = this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI * 0.15, Math.PI * 0.35, 5, new BABYLON.Vector3(0, 1, 0), this.scene);
         camera.attachControl(this.canvas, true);
         camera.minZ = 0.01;
         camera.zoomOnFactor = 0.5;
@@ -140,7 +145,7 @@ class App {
         light2.position = new BABYLON.Vector3(0, 10, 0);
         light2.diffuse = new BABYLON.Color3(0, 1, 0);
         const shadowGenerator2 = new BABYLON.ShadowGenerator(1024, light2);
-        
+
         // blue light
         const light3 = new BABYLON.DirectionalLight("light3", new BABYLON.Vector3(1, -1, -1), this.scene);
         light3.position = new BABYLON.Vector3(0, 10, 0);
@@ -196,6 +201,64 @@ class App {
                 gui.add(morphTarget.params, "animate").name('animate');
             });
         }
+    }
+
+    addPostProcessEffect() {
+        BABYLON.Effect.ShadersStore["customFragmentShader"] = `
+#ifdef GL_ES
+    precision highp float;
+#endif
+
+// Samplers
+varying vec2 vUV;
+uniform sampler2D textureSampler;
+
+// Parameters
+uniform float twist;
+
+void main(void) 
+{
+    // Convert texture coordinates to screen space (-1 to 1)
+    vec2 uv = vUV * 2.0 - 1.0;
+    
+    // Convert cartesian to polar
+    float r = length(uv);
+    float a = atan(uv.y, uv.x);
+
+    // Spiral twist factor
+    a += r * twist;
+
+    // Convert back to cartesian
+    vec2 spiralUV = vec2(cos(a), sin(a)) * r;
+
+    // Back to 0..1 texture space
+    spiralUV = (spiralUV + 1.0) * 0.5;
+
+    vec4 spiralColor = texture2D(textureSampler, spiralUV);
+
+    gl_FragColor = spiralColor;
+}
+    `;
+
+        // Twist parameter holder
+        const params = {
+            twist: 0.0
+        };
+
+        // Create the PostProcess
+        this.postProcess = new BABYLON.PostProcess("My custom post process", "custom", ["twist"], null, 1, this.camera);
+        this.postProcess.onApply = function (effect) {
+            effect.setFloat("twist", params.twist);
+        };
+
+        // Setup dat.GUI
+        const gui = new dat.GUI();
+        gui.domElement.id = "ppGUI";
+        gui.domElement.style.position = "absolute";
+        gui.domElement.style.left = "0px";
+
+        // Add twist controller
+        gui.add(params, "twist", -3.14, 3.14).name("PP Twist Factor");
     }
 }
 

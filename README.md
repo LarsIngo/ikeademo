@@ -45,6 +45,7 @@ The app will be available at [http://localhost:5173](http://localhost:5173) (or 
 - 🧬 A **compute shader** is used to **morph mesh vertices** dynamically in the scene  
 - 🎯 **GPU-based picking** allows selection of objects directly in the 3D view  
 - 🎛️ Selected objects can be manipulated using an intuitive **GUI** (built with `dat.gui`) to control morph parameters
+- 🌀 A **post-processing effect** is applied to **twist the final rendered output**, implemented as final custom feature of my choice as requested by the assignment
 
 ## 🛠️ Notes
 
